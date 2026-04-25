@@ -1,9 +1,3 @@
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-COPY backend/package*.json ./
-RUN npm ci --only=production
-
 FROM node:20-alpine
 
 WORKDIR /app
@@ -11,10 +5,17 @@ WORKDIR /app
 # Install curl for healthcheck
 RUN apk add --no-cache curl
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY backend/ ./
-COPY frontend/ ./public/
+# Copy package.json and install dependencies
+COPY backend/package.json ./
+RUN npm install --omit=dev
 
+# Copy backend source
+COPY backend/src ./src
+
+# Copy frontend as public
+COPY frontend/public ./public
+
+# Create uploads directory
 RUN mkdir -p uploads
 
 EXPOSE 3000
