@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.11
+    container_name: mokilager-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-mokilager_root_secret}
+      MYSQL_DATABASE: mokilager
+      MYSQL_USER: mokilager
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-mokilager_secret}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - mokilager-net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-yourusername/mokilager}:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mokilager-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: mokilager
+      DB_USER: mokilager
+      DB_PASSWORD: ${MYSQL_PASSWORD:-mokilager_secret}
+      SESSION_SECRET: ${SESSION_SECRET:-change_this_in_production_please}
+      SMTP_HOST: ${SMTP_HOST:-smtp.example.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@mokilager.at}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mokilager-net
+
+volumes:
+  db_data:
+  uploads:
+
+networks:
+  mokilager-net:
+    driver: bridge
