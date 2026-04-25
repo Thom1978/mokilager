@@ -8,15 +8,13 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3306,
     dialect: 'mariadb',
-    logging: process.env.NODE_ENV !== 'production' ? console.log : false,
-    dialectOptions: {
-      timezone: 'Europe/Vienna',
-    },
+    logging: false,
+    dialectOptions: { timezone: 'Europe/Vienna' },
     pool: { max: 10, min: 0, acquire: 30000, idle: 10000 }
   }
 );
 
-// Models
+// Models - timestamps: false bedeutet Sequelize sucht KEINE updated_at/created_at automatisch
 const User = sequelize.define('User', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   username: { type: DataTypes.STRING(100), allowNull: false, unique: true },
@@ -24,14 +22,17 @@ const User = sequelize.define('User', {
   password_hash: { type: DataTypes.STRING(255), allowNull: false },
   full_name: { type: DataTypes.STRING(255), allowNull: false },
   role: { type: DataTypes.ENUM('admin', 'verwalter', 'leihender'), defaultValue: 'leihender' },
-  active: { type: DataTypes.BOOLEAN, defaultValue: true }
-}, { tableName: 'users', underscored: true });
+  active: { type: DataTypes.BOOLEAN, defaultValue: true },
+  created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+}, { tableName: 'users', underscored: true, timestamps: false });
 
 const Category = sequelize.define('Category', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING(255), allowNull: false },
-  description: DataTypes.TEXT
-}, { tableName: 'categories', underscored: true });
+  description: DataTypes.TEXT,
+  created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+}, { tableName: 'categories', underscored: true, timestamps: false });
 
 const Article = sequelize.define('Article', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -47,8 +48,10 @@ const Article = sequelize.define('Article', {
   loan_duration_days: DataTypes.INTEGER,
   location: DataTypes.STRING(255),
   image_url: DataTypes.STRING(500),
-  active: { type: DataTypes.BOOLEAN, defaultValue: true }
-}, { tableName: 'articles', underscored: true });
+  active: { type: DataTypes.BOOLEAN, defaultValue: true },
+  created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+}, { tableName: 'articles', underscored: true, timestamps: false });
 
 const Transaction = sequelize.define('Transaction', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -61,8 +64,9 @@ const Transaction = sequelize.define('Transaction', {
   notes: DataTypes.TEXT,
   due_date: DataTypes.DATEONLY,
   returned_at: DataTypes.DATE,
-  reminder_sent: { type: DataTypes.BOOLEAN, defaultValue: false }
-}, { tableName: 'transactions', underscored: true });
+  reminder_sent: { type: DataTypes.BOOLEAN, defaultValue: false },
+  created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+}, { tableName: 'transactions', underscored: true, timestamps: false });
 
 const ActiveLoan = sequelize.define('ActiveLoan', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -73,7 +77,7 @@ const ActiveLoan = sequelize.define('ActiveLoan', {
   loan_date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   due_date: { type: DataTypes.DATEONLY, allowNull: false },
   reminder_sent: { type: DataTypes.BOOLEAN, defaultValue: false }
-}, { tableName: 'active_loans', underscored: true });
+}, { tableName: 'active_loans', underscored: true, timestamps: false });
 
 const InventorySession = sequelize.define('InventorySession', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -81,7 +85,7 @@ const InventorySession = sequelize.define('InventorySession', {
   started_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   completed_at: DataTypes.DATE,
   notes: DataTypes.TEXT
-}, { tableName: 'inventory_sessions', underscored: true });
+}, { tableName: 'inventory_sessions', underscored: true, timestamps: false });
 
 const InventoryItem = sequelize.define('InventoryItem', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -91,7 +95,7 @@ const InventoryItem = sequelize.define('InventoryItem', {
   system_quantity: { type: DataTypes.INTEGER, allowNull: false },
   delta: { type: DataTypes.INTEGER, allowNull: false },
   notes: DataTypes.TEXT
-}, { tableName: 'inventory_items', underscored: true });
+}, { tableName: 'inventory_items', underscored: true, timestamps: false });
 
 // Associations
 Article.belongsTo(Category, { foreignKey: 'category_id', as: 'category' });
