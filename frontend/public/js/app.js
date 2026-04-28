@@ -487,7 +487,7 @@ async function renderDashboard() {
             ${recentTransactions.length === 0 ? '<tr><td colspan="5"><div class="empty-state"><p>Keine Transaktionen</p></div></td></tr>' : ''}
             ${recentTransactions.map(t => `
               <tr>
-                <td style="white-space:nowrap;font-size:13px;">${formatDateTime(t.created_at)}</td>
+                <td style="white-space:nowrap;font-size:13px;">${formatDateTime(t.created_at || t.createdAt)}</td>
                 <td>${txTypeBadge(t.type)}</td>
                 <td>${escHtml(t.article?.name || '-')}</td>
                 <td>${t.quantity} ${escHtml(t.article?.unit || '')}</td>
@@ -514,7 +514,7 @@ async function renderArticles() {
   content.innerHTML = `
     <div class="action-bar">
       <div class="action-bar-title">Artikel (${articles.length})</div>
-      ${currentUser.role === 'admin' ? `<button class="btn btn-primary" onclick="showArticleModal(null, ${JSON.stringify(JSON.stringify(categories)).slice(1,-1)})">+ Neuer Artikel</button>` : ''}
+      ${currentUser.role === 'admin' ? `<button class="btn btn-primary" onclick="showArticleModal(null)">+ Neuer Artikel</button>` : ''}
     </div>
     <div class="search-bar">
       <input class="search-input" placeholder="🔍 Suche..." id="article-search" oninput="filterTable('articles-table', this.value)">
@@ -554,7 +554,7 @@ async function renderArticles() {
                 <td>${a.active ? '<span class="badge badge-green">Aktiv</span>' : '<span class="badge badge-gray">Inaktiv</span>'}</td>
                 ${currentUser.role === 'admin' ? `
                 <td style="white-space:nowrap;">
-                  <button class="btn btn-secondary btn-sm" onclick='showArticleModal(${JSON.stringify(a)}, ${JSON.stringify(categories)})'>✏️</button>
+                  <button class="btn btn-secondary btn-sm" onclick='showArticleModal_byId(${a.id})'>✏️</button>
                   <button class="btn btn-secondary btn-sm" onclick="showQRCode(${a.id}, '${escHtml(a.name)}')">📱</button>
                   <button class="btn btn-danger btn-sm" onclick="deleteArticle(${a.id})">🗑️</button>
                 </td>` : ''}
@@ -566,7 +566,13 @@ async function renderArticles() {
   `;
 
   window._categories = categories;
+  window._articles = articles;
 }
+function showArticleModal_byId(id) {
+  const article = (window._articles || []).find(a => a.id === id);
+  showArticleModal(article || null);
+}
+
 
 function showArticleModal(article, categories) {
   const cats = Array.isArray(categories) ? categories : (window._categories || []);
@@ -828,7 +834,7 @@ async function renderTransactions() {
             ${txns.length === 0 ? '<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📋</div><h3>Keine Transaktionen</h3></div></td></tr>' : ''}
             ${txns.map(t => `
               <tr>
-                <td style="font-size:13px;white-space:nowrap;">${formatDateTime(t.created_at)}</td>
+                <td style="font-size:13px;white-space:nowrap;">${formatDateTime(t.created_at || t.createdAt)}</td>
                 <td>${txTypeBadge(t.type)}</td>
                 <td>${escHtml(t.article?.name || '-')}</td>
                 <td>${t.quantity} ${escHtml(t.article?.unit || '')}</td>
@@ -946,7 +952,7 @@ async function renderInventory() {
         ${sessions.length === 0 ? '<div class="empty-state"><p>Keine Inventuren vorhanden</p></div>' : ''}
         ${sessions.slice(0, 5).map(s => `
           <div style="padding:10px 0;border-bottom:1px solid var(--moki-border);">
-            <div style="font-weight:600;font-size:14px;">${formatDateTime(s.started_at)}</div>
+            <div style="font-weight:600;font-size:14px;">${formatDateTime(s.started_at || s.startedAt)}</div>
             <div style="font-size:13px;color:#888;">${s.notes || 'Keine Notiz'}</div>
             <span class="badge ${s.completed_at ? 'badge-green' : 'badge-orange'}" style="margin-top:4px;">
               ${s.completed_at ? '✅ Abgeschlossen' : '⏳ Offen'}
@@ -1128,6 +1134,9 @@ function escHtml(str) {
 function formatDate(d) {
   if (!d) return '-';
   return new Date(d).toLocaleDateString('de-AT');
+}
+function getDate(obj, field) {
+  return obj[field] || obj[field.replace(/_(.)/g, (_, c) => c.toUpperCase())] || null;
 }
 function formatDateTime(d) {
   if (!d) return '-';
